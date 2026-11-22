@@ -1,0 +1,25 @@
+name: Signing diagnostic
+on: workflow_dispatch
+jobs:
+  diag:
+    runs-on: macos-latest
+    steps:
+      - name: Inspect the certificate's signing identity
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          echo "APPLE_SIGNING_IDENTITY length = ${#APPLE_SIGNING_IDENTITY} (expected 57 for 'Developer ID Application: Shankar Raj Jegadeesan (RAKS7AXSK2)')"
+          echo "APPLE_CERTIFICATE base64 length = ${#APPLE_CERTIFICATE}"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > cert.p12 || { echo "::error::base64 decode failed"; exit 1; }
+          ls -l cert.p12
+          security create-keychain -p actions diag.keychain
+          security unlock-keychain -p actions diag.keychain
+          security import cert.p12 -k diag.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -A || echo "::warning::import reported an issue"
+          security list-keychains -d user -s diag.keychain
+          echo "===== codesigning identities in your certificate ====="
+          security find-identity -v -p codesigning diag.keychain || true
+          echo "===== all identities ====="
+          security find-identity -v diag.keychain || true
+          rm -f cert.p12
