@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn instance_names() {
         assert_eq!(friendly_instance("_raop._tcp.local.", "A1B2C3D4E5F6@Living Room").as_deref(), Some("Living Room"));
-        assert_eq!(friendly_instance("_ipp._tcp.local.", "HP LaserJet @ shankars-2"), None);
+        assert_eq!(friendly_instance("_ipp._tcp.local.", "HP LaserJet @ office-2"), None);
         assert_eq!(friendly_instance("_ipp._tcp.local.", "Brother DCP-T426W").as_deref(), Some("Brother DCP-T426W"));
         assert_eq!(friendly_instance("_hap._tcp.local.", "4B2708FF-77B1-453F-A558-E5A2C9F57751"), None);
         assert_eq!(friendly_instance("_smb._tcp.local.", " NAS ").as_deref(), Some("NAS"));

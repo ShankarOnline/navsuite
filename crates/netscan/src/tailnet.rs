@@ -165,17 +165,17 @@ mod tests {
 
     const SAMPLE: &str = r#"{
       "Version": "1.104.4", "BackendState": "Running",
-      "Self": { "ID": "nSelf1CNTRL", "HostName": "Shankars-Window", "DNSName": "shankars-window.tail85ff9a.ts.net.",
-        "OS": "windows", "TailscaleIPs": ["fd7a:115c:a1e0::8c32:c779", "100.119.199.120"], "Online": true,
+      "Self": { "ID": "nSelf1CNTRL", "HostName": "Example-Desktop", "DNSName": "example-desktop.example.ts.net.",
+        "OS": "windows", "TailscaleIPs": ["fd7a:115c:a1e0::1", "100.100.100.1"], "Online": true,
         "ExitNode": false, "ExitNodeOption": false, "LastSeen": "0001-01-01T00:00:00Z", "KeyExpiry": "2027-03-25T16:00:35Z" },
-      "MagicDNSSuffix": "tail85ff9a.ts.net",
-      "CurrentTailnet": { "Name": "me@example.com", "MagicDNSSuffix": "tail85ff9a.ts.net", "MagicDNSEnabled": true },
+      "MagicDNSSuffix": "example.ts.net",
+      "CurrentTailnet": { "Name": "me@example.com", "MagicDNSSuffix": "example.ts.net", "MagicDNSEnabled": true },
       "Peer": {
-        "nodekey:aa": { "ID": "nDesk", "HostName": "ShankarDesk", "DNSName": "shankardesk.tail85ff9a.ts.net.", "OS": "linux",
+        "nodekey:aa": { "ID": "nDesk", "HostName": "ExampleDesk", "DNSName": "exampledesk.example.ts.net.", "OS": "linux",
           "TailscaleIPs": ["100.100.175.72", "fd7a:115c:a1e0::fc32:af49"], "Online": false, "LastSeen": "2026-11-20T08:15:00Z",
           "ExitNodeOption": true, "PrimaryRoutes": ["192.168.50.0/24"] },
-        "nodekey:bb": { "ID": "nMac", "HostName": "Shankars-MacBook-Pro", "DNSName": "shankars-macbook-pro.tail85ff9a.ts.net.",
-          "OS": "macOS", "TailscaleIPs": ["100.93.52.114"], "Online": true, "ExitNode": true }
+        "nodekey:bb": { "ID": "nMac", "HostName": "Example-MacBook-Pro", "DNSName": "example-macbook-pro.example.ts.net.",
+          "OS": "macOS", "TailscaleIPs": ["100.100.100.2"], "Online": true, "ExitNode": true }
       }
     }"#;
 
@@ -183,15 +183,15 @@ mod tests {
     fn parse_sample() {
         let st = parse_status(SAMPLE).unwrap();
         assert_eq!(st.backend_state, "Running");
-        assert_eq!(st.magic_dns_suffix.as_deref(), Some("tail85ff9a.ts.net"));
+        assert_eq!(st.magic_dns_suffix.as_deref(), Some("example.ts.net"));
         assert!(st.self_node.is_self);
-        assert_eq!(st.self_node.ips[0], "100.119.199.120");
+        assert_eq!(st.self_node.ips[0], "100.100.100.1");
         assert_eq!(st.self_node.last_seen, None);
-        assert_eq!(st.self_node.short_name(), "shankars-window");
+        assert_eq!(st.self_node.short_name(), "example-desktop");
         assert_eq!(st.peers.len(), 2);
         let mac = &st.peers[0]; // online first
-        assert_eq!((mac.host_name.as_str(), mac.online, mac.exit_node), ("Shankars-MacBook-Pro", true, true));
-        assert_eq!(mac.dns_name, "shankars-macbook-pro.tail85ff9a.ts.net");
+        assert_eq!((mac.host_name.as_str(), mac.online, mac.exit_node), ("Example-MacBook-Pro", true, true));
+        assert_eq!(mac.dns_name, "example-macbook-pro.example.ts.net");
         let desk = &st.peers[1];
         assert_eq!(desk.routes, vec!["192.168.50.0/24"]);
         assert!(desk.exit_node_option && !desk.online);

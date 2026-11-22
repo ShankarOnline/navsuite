@@ -433,7 +433,7 @@ mod tests {
         TailPeer {
             id: id.into(),
             host_name: host.into(),
-            dns_name: format!("{}.tail85ff9a.ts.net", host.to_lowercase()),
+            dns_name: format!("{}.example.ts.net", host.to_lowercase()),
             ips: vec![ip.into()],
             os: "macOS".into(),
             online,
@@ -443,14 +443,14 @@ mod tests {
     }
 
     fn status(self_node: TailPeer, peers: Vec<TailPeer>) -> TailnetStatus {
-        TailnetStatus { self_node: TailPeer { is_self: true, ..self_node }, peers, magic_dns_suffix: Some("tail85ff9a.ts.net".into()), backend_state: "Running".into() }
+        TailnetStatus { self_node: TailPeer { is_self: true, ..self_node }, peers, magic_dns_suffix: Some("example.ts.net".into()), backend_state: "Running".into() }
     }
 
     #[test]
     fn names_normalise() {
-        assert_eq!(norm_name("Shankars-MacBook-Pro.local.").as_deref(), Some("shankars-macbook-pro"));
+        assert_eq!(norm_name("Example-MacBook-Pro.local.").as_deref(), Some("example-macbook-pro"));
         assert_eq!(norm_name("nas.lan").as_deref(), Some("nas"));
-        assert_eq!(norm_name("pi.tail85ff9a.ts.net").as_deref(), Some("pi"));
+        assert_eq!(norm_name("pi.example.ts.net").as_deref(), Some("pi"));
         assert_eq!(norm_name("aur.archlinux.org").as_deref(), Some("aur.archlinux.org"));
         assert_eq!(norm_name("DESKTOP-AB12").as_deref(), Some("desktop-ab12"));
         assert_eq!(norm_name("10.0.0.1"), None);
@@ -460,30 +460,30 @@ mod tests {
     #[test]
     fn mac_on_lan_and_tailnet_is_one_record() {
         let lan = vec![Host {
-            ip: "10.28.28.36".into(),
+            ip: "192.168.1.36".into(),
             mac: Some("ec:93:7d:a4:4b:d9".into()),
-            mdns_name: Some("Shankars-MacBook-Pro.local".into()),
-            device_name: Some("Shankar's MacBook Pro".into()),
+            mdns_name: Some("Example-MacBook-Pro.local".into()),
+            device_name: Some("Example MacBook Pro".into()),
             kind: "computer".into(),
             services: vec![svc("ssh", 22), svc("smb", 445)],
             ..Default::default()
         }];
-        let tail_hosts = vec![Host { ip: "100.93.52.114".into(), hostname: Some("shankars-macbook-pro.tail85ff9a.ts.net".into()), kind: "computer".into(), services: vec![svc("ssh", 22), svc("vnc", 5900)], ..Default::default() }];
-        let st = status(peer("nSelf", "Shankars-Window", "100.119.199.120", true), vec![peer("nMac", "Shankars-MacBook-Pro", "100.93.52.114", true)]);
-        let ssh = vec![SshHost { alias: "100.93.52.114".into(), host_name: "100.93.52.114".into(), user: None, port: None, source: "known_hosts".into() }];
+        let tail_hosts = vec![Host { ip: "100.100.100.2".into(), hostname: Some("example-macbook-pro.example.ts.net".into()), kind: "computer".into(), services: vec![svc("ssh", 22), svc("vnc", 5900)], ..Default::default() }];
+        let st = status(peer("nSelf", "Example-Desktop", "100.100.100.1", true), vec![peer("nMac", "Example-MacBook-Pro", "100.100.100.2", true)]);
+        let ssh = vec![SshHost { alias: "100.100.100.2".into(), host_name: "100.100.100.2".into(), user: None, port: None, source: "known_hosts".into() }];
         let recs = merge(&lan, &tail_hosts, Some(&st), &ssh);
         assert_eq!(recs.len(), 2, "{recs:#?}"); // the Mac, and this machine (tailnet self)
         let mac = recs.iter().find(|r| r.id == "ec:93:7d:a4:4b:d9").expect("mac record");
-        assert_eq!(mac.name, "Shankar's MacBook Pro");
+        assert_eq!(mac.name, "Example MacBook Pro");
         assert!(mac.online);
-        assert_eq!(mac.ips, vec!["10.28.28.36", "100.93.52.114"]);
+        assert_eq!(mac.ips, vec!["192.168.1.36", "100.100.100.2"]);
         let kinds: Vec<&str> = mac.channels.iter().map(|c| c.kind.as_str()).collect();
         for k in ["lan", "tailscale", "bonjour", "smb", "ssh", "sftp", "vnc"] {
             assert!(kinds.contains(&k), "missing {k} in {kinds:?}");
         }
-        assert!(mac.channels.iter().any(|c| c.address == "smb://10.28.28.36/"));
-        assert!(mac.channels.iter().any(|c| c.address == "ssh://shankars-macbook-pro.tail85ff9a.ts.net"));
-        assert!(mac.channels.iter().any(|c| c.kind == "tailscale" && c.address == "shankars-macbook-pro.tail85ff9a.ts.net"));
+        assert!(mac.channels.iter().any(|c| c.address == "smb://192.168.1.36/"));
+        assert!(mac.channels.iter().any(|c| c.address == "ssh://example-macbook-pro.example.ts.net"));
+        assert!(mac.channels.iter().any(|c| c.kind == "tailscale" && c.address == "example-macbook-pro.example.ts.net"));
         // ssh appears on both networks but once in services.
         assert_eq!(mac.services.iter().filter(|s| s.kind == "ssh").count(), 1);
         assert_eq!(mac.services.len(), 3);
@@ -491,18 +491,18 @@ mod tests {
 
     #[test]
     fn self_joins_tailnet_self() {
-        let lan = vec![Host { ip: "10.28.28.31".into(), is_self: true, netbios_name: Some("SHANKARS-WINDOWS-PC".into()), kind: "windows".into(), ..Default::default() }];
-        let st = status(TailPeer { os: "windows".into(), ..peer("nSelf", "Shankars-Window", "100.119.199.120", true) }, vec![]);
+        let lan = vec![Host { ip: "192.168.1.31".into(), is_self: true, netbios_name: Some("DESKTOP-EXAMPLE".into()), kind: "windows".into(), ..Default::default() }];
+        let st = status(TailPeer { os: "windows".into(), ..peer("nSelf", "Example-Desktop", "100.100.100.1", true) }, vec![]);
         let recs = merge(&lan, &[], Some(&st), &[]);
         assert_eq!(recs.len(), 1);
         assert!(recs[0].is_self);
         assert_eq!(recs[0].kind, "windows");
-        assert_eq!(recs[0].ips, vec!["10.28.28.31", "100.119.199.120"]);
+        assert_eq!(recs[0].ips, vec!["192.168.1.31", "100.100.100.1"]);
     }
 
     #[test]
     fn shared_mac_does_not_merge() {
-        let h = |ip: &str| Host { ip: ip.into(), mac: Some("be:22:28:33:13:c3".into()), kind: "device".into(), ..Default::default() };
+        let h = |ip: &str| Host { ip: ip.into(), mac: Some("aa:bb:cc:dd:ee:01".into()), kind: "device".into(), ..Default::default() };
         let recs = merge(&[h("10.0.0.40"), h("10.0.0.104"), h("10.0.0.108")], &[], None, &[]);
         assert_eq!(recs.len(), 3);
         assert!(recs.iter().all(|r| r.id.starts_with("ip:")));
@@ -510,9 +510,9 @@ mod tests {
 
     #[test]
     fn offline_peer_and_ssh_config() {
-        let st = status(peer("nSelf", "me", "100.1.1.1", true), vec![peer("nDesk", "ShankarDesk", "100.100.175.72", false)]);
+        let st = status(peer("nSelf", "me", "100.1.1.1", true), vec![peer("nDesk", "ExampleDesk", "100.100.175.72", false)]);
         let ssh = vec![
-            SshHost { alias: "desk".into(), host_name: "shankardesk".into(), user: Some("shankar".into()), port: Some(2222), source: "config".into() },
+            SshHost { alias: "desk".into(), host_name: "exampledesk".into(), user: Some("user".into()), port: Some(2222), source: "config".into() },
             SshHost { alias: "nas".into(), host_name: "10.0.0.9".into(), user: Some("admin".into()), port: None, source: "config".into() },
         ];
         let lan = vec![Host { ip: "10.0.0.9".into(), netbios_name: Some("NAS".into()), kind: "nas".into(), services: vec![svc("smb", 445)], ..Default::default() }];
@@ -521,7 +521,7 @@ mod tests {
         let desk = recs.iter().find(|r| r.id == "ts:nDesk").unwrap();
         assert!(!desk.online);
         assert_eq!(desk.last_seen, parse_rfc3339_ms("2026-11-20T08:15:00Z"));
-        assert!(desk.channels.iter().any(|c| c.address == "ssh://shankar@shankardesk:2222"));
+        assert!(desk.channels.iter().any(|c| c.address == "ssh://user@exampledesk:2222"));
         assert!(desk.channels.iter().any(|c| c.kind == "tailscale" && c.label.contains("offline")));
         let nas = recs.iter().find(|r| r.id == "name:nas").unwrap();
         assert!(nas.channels.iter().any(|c| c.address == "ssh://admin@10.0.0.9"));

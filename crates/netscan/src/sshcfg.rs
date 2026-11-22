@@ -183,11 +183,11 @@ mod tests {
 
     #[test]
     fn known_hosts() {
-        let t = "100.93.52.114 ssh-ed25519 AAAA\n100.93.52.114 ssh-rsa AAAA\n\
+        let t = "100.100.100.2 ssh-ed25519 AAAA\n100.100.100.2 ssh-rsa AAAA\n\
                  github.com,140.82.112.3 ssh-ed25519 AAAA\n[gitlab.local]:2222 ssh-ed25519 AAAA\n\
                  |1|abc=|def= ssh-ed25519 AAAA\n@revoked bad.example ssh-rsa AAAA\n";
         let h = parse_known_hosts(t);
         let names: Vec<_> = h.iter().map(|x| (x.host_name.as_str(), x.port)).collect();
-        assert_eq!(names, vec![("100.93.52.114", None), ("github.com", None), ("140.82.112.3", None), ("gitlab.local", Some(2222))]);
+        assert_eq!(names, vec![("100.100.100.2", None), ("github.com", None), ("140.82.112.3", None), ("gitlab.local", Some(2222))]);
     }
 }
