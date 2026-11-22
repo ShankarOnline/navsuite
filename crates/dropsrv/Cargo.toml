@@ -1,0 +1,31 @@
+[package]
+name = "dropsrv"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8"
+axum-server = { version = "0.9", features = ["tls-rustls-no-provider"] }
+futures-util = "0.3.34"
+getrandom = "0.3"
+hex = "0.4.3"
+if-addrs = "0.15"
+percent-encoding = "2.3.2"
+qrcode = { version = "0.15", default-features = false, features = ["svg"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.10"
+tokio = { version = "1.54.1", features = ["full"] }
+tokio-util = { version = "0.7.20", features = ["io"] }
+
+[target."cfg(windows)".dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
+[target."cfg(unix)".dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+http-body-util = "0.1.5"
+tempfile = "3"
+tower = { version = "0.5", features = ["util"] }

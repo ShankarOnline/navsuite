@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Navsuite</title>
+  <link rel="stylesheet" href="vendor/xterm.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header class="toolbar">
+    <div class="nav-buttons">
+      <button id="btn-back" title="Back (Alt+Left)" aria-label="Back">&#8592;</button>
+      <button id="btn-fwd" title="Forward (Alt+Right)" aria-label="Forward">&#8594;</button>
+      <button id="btn-up" title="Up (Alt+Up)" aria-label="Up">&#8593;</button>
+      <button id="btn-refresh" title="Refresh (F5)" aria-label="Refresh">&#8635;</button>
+    </div>
+    <div class="address" id="address">
+      <div class="crumbs" id="crumbs"></div>
+      <input id="address-input" spellcheck="false" autocomplete="off"
+             placeholder="Path, \\server\share, smb://, sftp://user@host/path, or a system name">
+    </div>
+    <input id="filter" class="filter" type="search" placeholder="Filter" spellcheck="false">
+    <button id="btn-scan" class="primary" title="Scan the network">Scan</button>
+    <button id="btn-settings" title="Settings" aria-label="Settings">&#9881;</button>
+  </header>
+
+  <main class="workspace" id="workspace">
+    <nav class="sidebar" id="sidebar" aria-label="Sections"></nav>
+    <section class="tree" id="tree" aria-label="Tree"></section>
+    <section class="content" id="content" aria-label="Content">
+      <div class="content-head" id="content-head"></div>
+      <div class="content-body" id="content-body" tabindex="0"></div>
+      <div class="statusbar" id="statusbar"></div>
+    </section>
+    <aside class="details" id="details" aria-label="Details"></aside>
+  </main>
+
+  <div class="splitter" id="dock-splitter" title="Drag to resize"></div>
+  <section class="dock" id="dock">
+    <div class="dock-tabs" role="tablist">
+      <button data-tab="terminal" class="active">Terminal</button>
+      <button data-tab="transfers">Transfers <span class="badge" id="xfer-badge" hidden></span></button>
+      <button data-tab="probes">Probes</button>
+      <button data-tab="phones">Phones <span class="badge" id="drop-badge" hidden></span></button>
+      <button data-tab="log">Activity</button>
+      <span class="spacer"></span>
+      <button id="dock-toggle" title="Hide or show the dock (Ctrl+`)">&#9662;</button>
+    </div>
+    <div class="dock-body">
+      <div class="dock-pane active" data-pane="terminal">
+        <div class="term-tabs" id="term-tabs">
+          <select id="term-shell" title="Shell for new terminals"></select>
+          <button id="term-new" title="New terminal">+ New</button>
+        </div>
+        <div class="term-host" id="term-host"></div>
+      </div>
+      <div class="dock-pane" data-pane="transfers">
+        <div class="pane-actions">
+          <button id="xfer-pause-all">Pause all</button>
+          <button id="xfer-resume-all">Resume all</button>
+          <button id="xfer-clear">Clear finished</button>
+        </div>
+        <div id="xfer-list" class="list"></div>
+      </div>
+      <div class="dock-pane" data-pane="probes">
+        <div class="pane-actions">
+          <input id="probe-target" placeholder="Host or IP" spellcheck="false">
+          <select id="probe-kind">
+            <option value="ping">Ping</option>
+            <option value="traceroute">Traceroute</option>
+            <option value="port">Port check</option>
+            <option value="dns">DNS lookup</option>
+            <option value="http">HTTP check</option>
+          </select>
+          <input id="probe-port" type="number" min="1" max="65535" placeholder="Port" hidden>
+          <button id="probe-run" class="primary">Run</button>
+          <button id="probe-stop">Stop</button>
+        </div>
+        <pre id="probe-out" class="mono-out"></pre>
+      </div>
+      <div class="dock-pane" data-pane="phones">
+        <div class="phones" id="phones"></div>
+      </div>
+      <div class="dock-pane" data-pane="log">
+        <pre id="log-out" class="mono-out"></pre>
+      </div>
+    </div>
+  </section>
+
+  <div id="menu" class="menu" hidden role="menu"></div>
+  <div id="modal-backdrop" class="backdrop" hidden></div>
+  <div id="modal" class="modal" hidden role="dialog" aria-modal="true"></div>
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="vendor/xterm.js"></script>
+  <script src="vendor/addon-fit.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#2563eb">
+<title>Drop</title>
+<link rel="icon" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<header class="bar">
+  <img src="/icon.svg" alt="" width="28" height="28">
+  <h1 id="title">Drop</h1>
+  <button id="settingsBtn" class="ghost" type="button" hidden aria-expanded="false">Settings</button>
+</header>
+<main>
+  <p id="loading" class="muted center">Loading…</p>
+
+  <section id="joinView" class="card" hidden>
+    <h2>Join this computer</h2>
+    <p>Open navsuite on the computer, show the phone QR code and scan it with your camera. Or type the code shown under it:</p>
+    <form id="joinForm" action="/join" method="get" class="row">
+      <input name="k" id="codeInput" placeholder="ABCD-EFGH" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" required>
+      <button class="btn" type="submit">Join</button>
+    </form>
+  </section>
+
+  <section id="nameView" class="card" hidden>
+    <h2>Name this phone</h2>
+    <p>The computer and other phones will see this name.</p>
+    <form id="nameForm" class="row">
+      <input id="nameInput" maxlength="40" required autocomplete="off">
+      <button class="btn" type="submit">Save</button>
+    </form>
+  </section>
+
+  <div id="mainView" hidden>
+    <section id="settings" class="card" hidden>
+      <h2>This phone</h2>
+      <p>Joined as <b id="meName"></b></p>
+      <div class="row">
+        <button id="renameBtn" class="btn secondary" type="button">Rename</button>
+        <button id="leaveBtn" class="btn danger" type="button">Leave</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Send to</h2>
+      <div id="targets" class="chips" role="radiogroup" aria-label="Recipient"></div>
+      <label class="btn big" id="pickLabel">
+        <input id="fileInput" type="file" multiple class="vh">
+        <span>Choose photos or files</span>
+      </label>
+      <ul id="uploads" class="list"></ul>
+    </section>
+
+    <section class="card">
+      <h2>For you</h2>
+      <ul id="inbox" class="list"></ul>
+      <p id="inboxEmpty" class="muted">Nothing waiting. Files sent to this phone appear here.</p>
+    </section>
+  </div>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="/app.js"></script>
+</body>
+</html>
