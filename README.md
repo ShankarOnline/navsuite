@@ -1,5 +1,7 @@
 # Navsuite
 
+[![CI](https://github.com/ShankarOnline/navsuite/actions/workflows/ci.yml/badge.svg)](https://github.com/ShankarOnline/navsuite/actions/workflows/ci.yml)
+
 **One explorer for files, networks, phones and drives.** A single window that shows every system on
 your home network and tailnet as one record, browses files across local disks, SMB, SFTP and FTP,
 passes files to any phone through a browser, reads other operating systems' drives safely, and plays
