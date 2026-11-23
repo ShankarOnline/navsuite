@@ -47,6 +47,35 @@ jobs:
 
       - uses: swatinem/rust-cache@v2
 
+      # Windows code signing. Only runs when the WINDOWS_CERTIFICATE secret is set; otherwise the
+      # build stays unsigned (no failure). The cert is a base64-encoded .pfx / .p12.
+      - name: Set up Windows code signing
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE)) {
+            Write-Host "No WINDOWS_CERTIFICATE secret - building Windows unsigned."
+            exit 0
+          }
+          $pfx = Join-Path $env:RUNNER_TEMP "narada-signing.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $pw = if ([string]::IsNullOrEmpty($env:WINDOWS_CERTIFICATE_PASSWORD)) { $null } else { ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force }
+          $cert = if ($pw) { Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pw } else { Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My }
+          Remove-Item $pfx -Force
+          Write-Host "Imported signing cert, thumbprint $($cert.Thumbprint)"
+          # Inject the thumbprint into tauri.conf so the bundler signs the app, the .exe and the .msi.
+          $cfgPath = "app/tauri.conf.json"
+          $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
+          if (-not $cfg.bundle.PSObject.Properties['windows']) { $cfg.bundle | Add-Member windows ([pscustomobject]@{}) }
+          $cfg.bundle.windows | Add-Member certificateThumbprint $cert.Thumbprint -Force
+          $cfg.bundle.windows | Add-Member digestAlgorithm "sha256" -Force
+          $cfg.bundle.windows | Add-Member timestampUrl "http://timestamp.digicert.com" -Force
+          ($cfg | ConvertTo-Json -Depth 30) | Set-Content $cfgPath -Encoding utf8
+          Write-Host "Windows signing configured."
+
       - uses: tauri-apps/tauri-action@v0
         id: tauri
         env:
