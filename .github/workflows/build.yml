@@ -65,34 +65,8 @@ jobs:
           releaseDraft: true
           args: ${{ matrix.args }}
 
-      # Windows code signing via Azure Trusted Signing. Inert until the TRUSTED_SIGNING_* repo
-      # variables and the AZURE_* secrets (a service principal) are set. It signs the .exe and .msi,
-      # then replaces the unsigned copies already uploaded to the draft release.
-      - name: Sign Windows installers (Azure Trusted Signing)
-        if: runner.os == 'Windows' && vars.TRUSTED_SIGNING_ACCOUNT != ''
-        uses: azure/trusted-signing-action@v0.5.9
-        with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          endpoint: ${{ vars.TRUSTED_SIGNING_ENDPOINT }}
-          trusted-signing-account-name: ${{ vars.TRUSTED_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ vars.TRUSTED_SIGNING_PROFILE }}
-          files-folder: ${{ github.workspace }}\target\release\bundle
-          files-folder-filter: exe,msi
-          files-folder-recurse: true
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-
-      - name: Replace release installers with signed ones
-        if: runner.os == 'Windows' && vars.TRUSTED_SIGNING_ACCOUNT != '' && startsWith(github.ref, 'refs/tags/')
-        shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          $files = Get-ChildItem -Recurse "$env:GITHUB_WORKSPACE\target\release\bundle" -Include *.exe,*.msi | ForEach-Object { $_.FullName }
-          if ($files) { gh release upload ${{ github.ref_name }} $files --clobber }
+      # Windows installers are currently shipped unsigned (Azure Trusted Signing isn't available
+      # for individual accounts in India; a traditional cert can be wired here later if desired).
 
       - uses: actions/upload-artifact@v4
         with:
