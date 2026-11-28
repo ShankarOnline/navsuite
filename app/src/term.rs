@@ -277,4 +277,28 @@ mod tests {
     fn finds_a_shell() {
         assert!(!shells().is_empty());
     }
+
+    #[test]
+    fn spawns_default_shell_and_reads_output() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::Arc;
+        use std::time::Duration;
+        let terms = Terminals::default();
+        let got = Arc::new(AtomicBool::new(false));
+        let g = got.clone();
+        let start = Start { cols: 80, rows: 24, ..Default::default() };
+        let id = terms
+            .spawn(start, "", move |_d| g.store(true, Ordering::Relaxed), move |_e| {})
+            .expect("spawn should succeed");
+        assert!(id > 0);
+        // A real shell prints a prompt within a second.
+        for _ in 0..40 {
+            if got.load(Ordering::Relaxed) {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        terms.close(id);
+        assert!(got.load(Ordering::Relaxed), "no output from the spawned shell");
+    }
 }

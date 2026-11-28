@@ -96,6 +96,7 @@ const S = {
   clip: null,            // {op:'copy'|'move', locs:[uri]}
   shells: [],
   terms: new Map(),      // id -> {term, fit, div, tab, shell}
+  termPending: new Map(),// id -> [Uint8Array] output that arrived before the tab registered
   activeTerm: null,
   probeId: null,
   jobs: new Map(),
@@ -148,6 +149,11 @@ function fail(e, what) {
   log(m);
   toast(m, 5000);
 }
+
+// Surface otherwise-invisible failures: an uncaught error or rejected promise in a
+// click handler used to vanish silently (e.g. a feature that "does nothing").
+addEventListener('error', e => fail(e.message || e.error, 'Error'));
+addEventListener('unhandledrejection', e => fail(e.reason, 'Error'));
 
 function menu(items, x, y) {
   const m = $('#menu');
@@ -1327,15 +1333,22 @@ function termTheme() {
   return { background: '#111111', foreground: '#e6e6e6', cursor: '#e6e6e6', selectionBackground: '#3a5a8a' };
 }
 async function newTerminal(opts = {}) {
-  openDock('terminal');
+  showDock('terminal');
+  if (typeof Terminal === 'undefined' || typeof FitAddon === 'undefined') {
+    fail('The terminal component failed to load.', 'Terminal');
+    return;
+  }
   const div = el('div', { class: 'term' });
   $('#term-host').append(div);
-  const term = new Terminal({ fontFamily: getComputedStyle(document.body).getPropertyValue('--mono'), fontSize: 13, cursorBlink: true, theme: termTheme(), scrollback: 5000, allowProposedApi: false });
-  const fit = new FitAddon.FitAddon();
-  term.loadAddon(fit);
-  term.open(div);
-  activateTermDiv(div);
-  fit.fit();
+  let term, fit;
+  try {
+    term = new Terminal({ fontFamily: getComputedStyle(document.body).getPropertyValue('--mono'), fontSize: 13, cursorBlink: true, theme: termTheme(), scrollback: 5000, allowProposedApi: false });
+    fit = new FitAddon.FitAddon();
+    term.loadAddon(fit);
+    term.open(div);
+    activateTermDiv(div);
+    fit.fit();
+  } catch (e) { div.remove(); fail(e, 'Terminal'); return; }
   const shellId = opts.shell || $('#term-shell').value || '';
   let id;
   try {
@@ -1346,6 +1359,9 @@ async function newTerminal(opts = {}) {
   tab.addEventListener('click', () => activateTerm(id));
   $('#term-tabs').insertBefore(tab, $('#term-shell'));
   S.terms.set(id, { term, fit, div, tab, shell: shellId });
+  // Flush any output that streamed in before this tab was registered (the shell's first prompt).
+  const early = S.termPending.get(id);
+  if (early) { for (const b of early) term.write(b); S.termPending.delete(id); }
   term.onData(data => invoke('term_write', { id, data }).catch(() => {}));
   term.onResize(({ cols, rows }) => invoke('term_resize', { id, cols, rows }).catch(() => {}));
   // Drop files from the listing into the terminal: paste their paths quoted for this shell (E13).
@@ -1535,11 +1551,16 @@ function onDropEvent(ev) {
 }
 
 /* ---------- dock ---------- */
-function openDock(tab) {
+// Reveal a dock pane. Does NOT auto-open a terminal, so newTerminal() can call it safely.
+function showDock(tab) {
   $('#dock').classList.remove('collapsed');
   for (const b of document.querySelectorAll('.dock-tabs button[data-tab]')) b.classList.toggle('active', b.dataset.tab === tab);
   for (const p of document.querySelectorAll('.dock-pane')) p.classList.toggle('active', p.dataset.pane === tab);
   if (tab === 'phones') { $('#drop-badge').hidden = true; $('#drop-badge').textContent = ''; refreshPhones(); }
+}
+function openDock(tab) {
+  showDock(tab);
+  // Opening the terminal pane with no tab yet spawns one; newTerminal() reveals the pane itself.
   if (tab === 'terminal') { if (!S.terms.size) newTerminal(); else activateTerm(S.activeTerm); }
 }
 function setupDock() {
@@ -1691,7 +1712,15 @@ async function main() {
 
   await listen('scan://event', onScanEvent);
   await listen('records://update', onRecords);
-  await listen('term://data', ({ id, b64 }) => { const t = S.terms.get(id); if (t) t.term.write(Uint8Array.from(atob(b64), c => c.charCodeAt(0))); });
+  await listen('term://data', ({ id, b64 }) => {
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const t = S.terms.get(id);
+    if (t) { t.term.write(bytes); return; }
+    // Output can arrive before newTerminal() registers the tab; buffer it to flush on registration.
+    let b = S.termPending.get(id);
+    if (!b) { b = []; S.termPending.set(id, b); }
+    b.push(bytes);
+  });
   await listen('term://exit', ({ id }) => { const t = S.terms.get(id); if (t) t.term.write('\r\n\x1b[2m[process ended]\x1b[0m\r\n'); });
   await listen('probe://event', onProbeEvent);
   await listen('xfer://event', onXferEvent);
