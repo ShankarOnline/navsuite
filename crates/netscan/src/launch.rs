@@ -13,14 +13,56 @@ pub fn open_target(target: &str) -> Result<(), String> {
 
 #[cfg(windows)]
 fn platform_open(target: &str) -> Result<(), String> {
+    use windows_sys::Win32::System::Com::{CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED, COINIT_DISABLE_OLE1DDE};
     use windows_sys::Win32::UI::Shell::ShellExecuteW;
     use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
     let w = |s: &str| s.encode_utf16().chain(Some(0)).collect::<Vec<u16>>();
     let (verb, file) = (w("open"), w(target));
+    // ShellExecuteW hands off to shell extensions (e.g. the browser that opens an .html file),
+    // which need COM initialized on the calling thread. Without this the call can return success
+    // yet nothing actually launches. We run on a pooled blocking thread, so initialize it here.
+    let hr = unsafe { CoInitializeEx(std::ptr::null(), (COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE) as u32) };
+    let inited = hr == 0 || hr == 1; // S_OK or S_FALSE (already initialized on this thread)
     // SAFETY: all strings are NUL-terminated and outlive the call.
     let r = unsafe { ShellExecuteW(std::ptr::null_mut(), verb.as_ptr(), file.as_ptr(), std::ptr::null(), std::ptr::null(), SW_SHOWNORMAL) };
+    if inited {
+        unsafe { CoUninitialize() };
+    }
     // ShellExecute returns a value > 32 on success.
     if r as isize > 32 { Ok(()) } else { Err(format!("Windows could not open {target} (error {})", r as isize)) }
+}
+
+/// Open the OS file manager with `path` selected (E2: "Show in folder").
+pub fn reveal(path: &str) -> Result<(), String> {
+    let p = path.trim();
+    if p.is_empty() || p.contains(['\0', '\n', '\r']) {
+        return Err(format!("refusing to reveal {p:?}"));
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        if p.contains('"') {
+            return Err("path contains a quote".into());
+        }
+        return std::process::Command::new("explorer.exe")
+            .raw_arg(format!("/select,\"{p}\""))
+            .spawn()
+            .map(|_| ())
+            .map_err(|e| format!("could not open Explorer: {e}"));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        return spawn_detached("open", &["-R", p]);
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        let parent = std::path::Path::new(p).parent().map(|x| x.to_string_lossy().into_owned()).unwrap_or_else(|| "/".into());
+        return spawn_detached("xdg-open", &[&parent]);
+    }
+    #[cfg(not(any(windows, unix)))]
+    {
+        Err("reveal is not supported on this OS".into())
+    }
 }
 
 #[cfg(target_os = "macos")]

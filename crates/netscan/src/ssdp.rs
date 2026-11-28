@@ -201,7 +201,7 @@ pub(crate) async fn http_get(url: &str, timeout: Duration) -> Option<String> {
     let (host, port, path) = split_url(url)?;
     let fut = async {
         let mut s = TcpStream::connect((host.as_str(), port)).await.ok()?;
-        let req = format!("GET {path} HTTP/1.1\r\nHost: {host}:{port}\r\nConnection: close\r\nUser-Agent: navsuite/0.1 UPnP/1.1\r\nAccept: */*\r\n\r\n");
+        let req = format!("GET {path} HTTP/1.1\r\nHost: {host}:{port}\r\nConnection: close\r\nUser-Agent: narada/0.1 UPnP/1.1\r\nAccept: */*\r\n\r\n");
         s.write_all(req.as_bytes()).await.ok()?;
         let mut buf = Vec::new();
         let mut chunk = [0u8; 8192];

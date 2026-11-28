@@ -27,7 +27,7 @@ mod ssdp;
 pub mod tailnet;
 
 pub use iface::{LocalNet, local_networks};
-pub use launch::{launch_service, open_target, service_target};
+pub use launch::{launch_service, open_target, reveal, service_target};
 pub use model::*;
 pub use probe::{PORTS, probe_hosts};
 pub use records::{Channel, NameSource, SystemRecord, merge};

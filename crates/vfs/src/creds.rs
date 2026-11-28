@@ -1,4 +1,4 @@
-//! Credentials: passwords in the OS keyring (service "navsuite", account
+//! Credentials: passwords in the OS keyring (service "narada", account
 //! "user@host"), plus a small host -> user map in the data dir so we know
 //! which account to look up for SMB hosts.
 
@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-const SERVICE: &str = "navsuite";
+const SERVICE: &str = "narada";
 
 pub(crate) struct Creds {
     users_file: PathBuf,

@@ -63,7 +63,7 @@ pub(crate) async fn http(target: &str, url: Option<String>, cancel: &Arc<AtomicB
         .timeout(Duration::from_secs(10))
         .connect_timeout(Duration::from_secs(4))
         .redirect(reqwest::redirect::Policy::limited(5))
-        .user_agent(concat!("navsuite-probe/", env!("CARGO_PKG_VERSION")))
+        .user_agent(concat!("narada-probe/", env!("CARGO_PKG_VERSION")))
         .build()
     {
         Ok(c) => c,

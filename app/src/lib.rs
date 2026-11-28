@@ -1,4 +1,4 @@
-//! Navsuite: one window for files and networks.
+//! Narada: one window for files and networks.
 //!
 //! This crate is the Tauri shell. The real work lives in the workspace crates:
 //! netscan (discovery and system records), vfs (one file layer for local, SMB and SFTP),
@@ -38,7 +38,7 @@ fn disk_io(e: impl std::fmt::Display) -> disks::DiskError {
     disks::DiskError::Io { message: e.to_string() }
 }
 
-/// The elevated raw-disk helper (DB5): re-launched as `navsuite --disk-helper <pipe> <token>`.
+/// The elevated raw-disk helper (DB5): re-launched as `narada --disk-helper <pipe> <token>`.
 /// It never returns; this is called from `main` before the window starts.
 pub fn disk_helper(args: &[String]) -> ! {
     disks::helper_main(args)
@@ -323,7 +323,7 @@ async fn fs_open_system(app: State<'_, App>, loc: String) -> FsRes<()> {
             if size > 512 * 1024 * 1024 {
                 return Err(other("This file is over 512 MB; copy it to this computer first."));
             }
-            let dir = std::env::temp_dir().join("navsuite-open");
+            let dir = std::env::temp_dir().join("narada-open");
             std::fs::create_dir_all(&dir).map_err(|e| other(e.to_string()))?;
             let dest = dir.join(&entry.name);
             let fh = app.vfs.open_read(&l).await?;
@@ -343,6 +343,17 @@ async fn fs_open_system(app: State<'_, App>, loc: String) -> FsRes<()> {
         }
     };
     tokio::task::spawn_blocking(move || netscan::open_target(&target)).await.map_err(|e| other(e.to_string()))?.map_err(other)
+}
+
+/// Reveal a local file or folder in the OS file manager, selected (E2: "Show in folder").
+#[tauri::command]
+async fn fs_reveal(loc: String) -> FsRes<()> {
+    let l = parse(&loc)?;
+    let native = l.forms().into_iter().find(|f| f.label.starts_with("Local path") || f.label.starts_with("UNC") || f.label.starts_with("Mount"));
+    match native {
+        Some(f) => tokio::task::spawn_blocking(move || netscan::reveal(&f.value)).await.map_err(|e| other(e.to_string()))?.map_err(other),
+        None => Err(other("This item isn't on a local disk; browse to its folder here instead.")),
+    }
 }
 
 /* ---------------- drives and dual boot ---------------- */
@@ -412,7 +423,7 @@ async fn disks_raw_fetch(partition: disks::Partition, path: String) -> Res<Strin
     .await
     .map_err(|e| e.to_string())?
     .map_err(|e: disks::DiskError| format!("{e:?}"))?;
-    let dir = std::env::temp_dir().join("navsuite-raw");
+    let dir = std::env::temp_dir().join("narada-raw");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let dest = dir.join(&name);
     std::fs::write(&dest, bytes).map_err(|e| e.to_string())?;
@@ -674,7 +685,7 @@ pub fn run() {
             records_get, scan_start, scan_cancel, open_url, media_base,
             disks_list, disks_mount, disks_unmount, disks_eject, disks_is_elevated, disks_raw_list, disks_raw_fetch, start_view,
             fs_roots, fs_list, fs_stat, fs_normalize, fs_parent, fs_join, fs_forms, fs_preview, fs_mkdir, fs_rename,
-            fs_remove, fs_set_credentials, fs_trust_host_key, fs_open_system,
+            fs_remove, fs_set_credentials, fs_trust_host_key, fs_open_system, fs_reveal,
             xfer_plan, xfer_enqueue, xfer_jobs, xfer_pause, xfer_resume, xfer_cancel, xfer_retry, xfer_pause_all,
             xfer_resume_all, xfer_clear_finished,
             term_shells, term_spawn, term_write, term_resize, term_close, term_quote,
@@ -682,5 +693,5 @@ pub fn run() {
             drop_phones, drop_inbox, drop_urls, drop_ticket, drop_send, drop_rename_phone, drop_forget_phone,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running navsuite");
+        .expect("error while running narada");
 }

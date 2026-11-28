@@ -35,6 +35,8 @@ pub struct Settings {
     pub show_sidebar: bool,
     /// Keep the bottom dock (terminal/transfers/probes...) collapsed until needed.
     pub dock_collapsed: bool,
+    /// Width of the left sidebar in pixels (drag-to-resize).
+    pub sidebar_width: u32,
     /// Check every copy against the source with SHA-256 (E9).
     pub verify_copies: bool,
     pub write_manifest: bool,
@@ -67,6 +69,7 @@ impl Default for Settings {
             show_tree: true,
             show_sidebar: true,
             dock_collapsed: false,
+            sidebar_width: 210,
             verify_copies: true,
             write_manifest: false,
             drop_enabled: true,
@@ -80,7 +83,14 @@ impl Default for Settings {
 
 pub fn data_dir() -> PathBuf {
     let base = dirs::data_dir().unwrap_or_else(std::env::temp_dir);
-    let d = base.join("navsuite");
+    let d = base.join("narada");
+    // Carry settings over from the previous name ("navsuite") on the first run after the rename.
+    if !d.exists() {
+        let old = base.join("navsuite");
+        if old.is_dir() {
+            let _ = std::fs::rename(&old, &d);
+        }
+    }
     let _ = std::fs::create_dir_all(&d);
     d
 }

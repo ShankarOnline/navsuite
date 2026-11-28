@@ -157,7 +157,7 @@ async fn join(State(inner): St, ClientIp(ip): ClientIp, headers: HeaderMap, Quer
         Err(JoinError::Full) => message_page(
             StatusCode::FORBIDDEN,
             "Too many phones",
-            "This computer already has the maximum number of phones. Remove one in navsuite first.",
+            "This computer already has the maximum number of phones. Remove one in narada first.",
         ),
     }
 }

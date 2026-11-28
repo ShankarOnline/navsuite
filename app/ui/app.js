@@ -771,10 +771,13 @@ async function openWithSystem(loc) {
   try { await invoke('fs_open_system', { loc }); log('Opened with the system app: ' + loc); } catch (err) { fail(err, 'Open'); }
 }
 async function revealInFolder(loc) {
+  // Prefer the OS file manager (Explorer/Finder) with the item selected.
+  try { await invoke('fs_reveal', { loc }); log('Revealed in file manager: ' + loc); return; }
+  catch { /* remote or unsupported path: browse to its parent inside Narada instead */ }
   try {
     const parent = await invoke('fs_parent', { loc });
     if (parent) go({ type: 'folder', loc: parent }, { select: loc });
-  } catch (e) { fail(e); }
+  } catch (e) { fail(e, 'Show in folder'); }
 }
 
 function dropTarget(node, destFn) {
@@ -948,9 +951,11 @@ function showFolderDetails(loc) {
   const d = $('#details');
   d.innerHTML = '';
   d.append(el('h3', { text: crumbParts(loc).at(-1)?.label || loc }));
-  d.append(el('div', { class: 'section-label', text: 'Copy path' }));
+  const cp = el('details', { class: 'copypath' });
+  cp.append(el('summary', { text: 'Copy path' }));
   const forms = el('div', { class: 'forms' });
-  d.append(forms);
+  cp.append(forms);
+  d.append(cp);
   pathForms(loc, forms);
   d.append(el('div', { class: 'btn-row' },
     el('button', { text: 'Open terminal here', onclick: () => terminalHere(loc) }),
@@ -978,9 +983,11 @@ async function showDetailsFor(loc) {
   const prev = el('div', { class: 'preview', hidden: true });
   d.append(prev);
   d.append(dl([['Type', kindLabel(e)], ['Size', e.isDir ? '' : fmtSize(e.size) + (e.size ? ` (${e.size.toLocaleString()} bytes)` : '')], ['Modified', fmtTime(e.modified)], ['Hidden', e.hidden ? 'yes' : ''], ['Link', e.isLink ? 'yes' : '']]));
-  d.append(el('div', { class: 'section-label', text: 'Copy path' }));
+  const cp = el('details', { class: 'copypath' });
+  cp.append(el('summary', { text: 'Copy path' }));
   const forms = el('div', { class: 'forms' });
-  d.append(forms);
+  cp.append(forms);
+  d.append(cp);
   pathForms(loc, forms);
   const isLocal = !/^(smb|sftp):/i.test(loc) || navigator.userAgent.includes('Windows') && /^smb:/i.test(loc);
   d.append(el('div', { class: 'btn-row' },
@@ -997,17 +1004,26 @@ async function loadPreview(e, box) {
   const ext = (/\.([^.]+)$/.exec(e.name) || [])[1]?.toLowerCase() || '';
   const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
   const isPdf = ext === 'pdf';
+  const isHtml = ext === 'html' || ext === 'htm';
   const isText = /^(txt|md|log|json|ya?ml|toml|ini|cfg|conf|csv|tsv|xml|html?|css|js|ts|jsx|tsx|rs|py|go|java|kt|c|h|cpp|hpp|cs|sh|ps1|bat|sql|rb|php|swift|env|gitignore|dockerfile)$/.test(ext) || (!ext && (e.size || 0) < 65536);
   if (!isImg && !isPdf && !isText) return;
-  const max = isText ? 64 * 1024 : 12 * 1024 * 1024;
+  const max = isText ? 256 * 1024 : 12 * 1024 * 1024;
   if (!isText && (e.size || 0) > max) { box.hidden = false; box.append(el('pre', { text: `Too large to preview here (${fmtSize(e.size)}). Open it with the system app.` })); return; }
   try {
     const p = await invoke('fs_preview', { loc: e.loc, maxBytes: max });
     if (S.sel.size !== 1 || !S.sel.has(e.loc)) return;
     box.hidden = false;
     if (isImg) box.append(el('img', { src: `data:${p.mime};base64,${p.bytesBase64}`, alt: e.name }));
-    else if (isPdf) box.append(el('iframe', { src: `data:application/pdf;base64,${p.bytesBase64}`, title: e.name }));
-    else {
+    else if (isPdf) box.append(el('iframe', { class: 'doc-frame', src: `data:application/pdf;base64,${p.bytesBase64}`, title: e.name }));
+    else if (isHtml) {
+      // Render the page with the built-in engine; sandboxed (no scripts) since the file is untrusted.
+      const frame = el('iframe', { class: 'doc-frame', title: e.name, sandbox: '', src: `data:text/html;base64,${p.bytesBase64}` });
+      const bytes = Uint8Array.from(atob(p.bytesBase64), c => c.charCodeAt(0));
+      const pre = el('pre', { text: new TextDecoder('utf-8', { fatal: false }).decode(bytes), hidden: true });
+      let src = false;
+      const toggle = el('button', { text: 'View source', onclick: () => { src = !src; frame.hidden = src; pre.hidden = !src; toggle.textContent = src ? 'View rendered' : 'View source'; } });
+      box.append(el('div', { class: 'preview-bar' }, toggle), frame, pre);
+    } else {
       const bytes = Uint8Array.from(atob(p.bytesBase64), c => c.charCodeAt(0));
       let text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
       if (p.truncated) text += '\n… (first ' + fmtSize(bytes.length) + ')';
@@ -1594,6 +1610,25 @@ function setupDock() {
     addEventListener('mousemove', move);
     addEventListener('mouseup', up);
   });
+  // Drag the sidebar/tree boundary to resize the sidebar; width is persisted.
+  const sbsp = $('#sidebar-splitter');
+  sbsp.addEventListener('mousedown', ev => {
+    ev.preventDefault();
+    const ws = $('#workspace');
+    const startX = ev.clientX, startW = $('#sidebar').offsetWidth;
+    let w = startW;
+    sbsp.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    const move = e => { w = Math.max(120, Math.min(520, startW + e.clientX - startX)); ws.style.setProperty('--sb-w', w + 'px'); };
+    const up = () => {
+      removeEventListener('mousemove', move); removeEventListener('mouseup', up);
+      sbsp.classList.remove('dragging');
+      document.body.style.cursor = '';
+      if (S.settings.sidebarWidth !== w) { S.settings.sidebarWidth = w; saveSettings(); }
+    };
+    addEventListener('mousemove', move);
+    addEventListener('mouseup', up);
+  });
 }
 function fitTerms() { const t = S.terms.get(S.activeTerm); t && setTimeout(() => t.fit.fit(), 0); }
 addEventListener('resize', fitTerms);
@@ -1607,10 +1642,18 @@ function applyTheme() {
   if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
   $('#workspace').classList.toggle('no-tree', !S.settings.showTree);
   $('#workspace').classList.toggle('no-sidebar', S.settings.showSidebar === false);
+  $('#workspace').style.setProperty('--sb-w', (S.settings.sidebarWidth || 210) + 'px');
+  $('#btn-sidebar').classList.toggle('on', S.settings.showSidebar !== false);
+  $('#btn-tree').classList.toggle('on', !!S.settings.showTree);
   setDockCollapsed(!!S.settings.dockCollapsed);
 }
 function toggleSidebar() {
   S.settings.showSidebar = S.settings.showSidebar === false; // hidden -> show, visible -> hide
+  applyTheme();
+  saveSettings();
+}
+function toggleTree() {
+  S.settings.showTree = !S.settings.showTree;
   applyTheme();
   saveSettings();
 }
@@ -1660,6 +1703,7 @@ function setupKeys() {
     if (ctrl && e.key.toLowerCase() === 'l') { e.preventDefault(); startEdit(); return; }
     if (ctrl && e.key === '`') { e.preventDefault(); setDockCollapsed(!$('#dock').classList.contains('collapsed')); return; }
     if (ctrl && !e.shiftKey && e.key.toLowerCase() === 'b') { e.preventDefault(); toggleSidebar(); return; }
+    if (ctrl && e.shiftKey && e.key.toLowerCase() === 'b') { e.preventDefault(); toggleTree(); return; }
     if (ctrl && e.shiftKey && e.key.toLowerCase() === 't') { e.preventDefault(); const one = S.sel.size === 1 ? entryByLoc([...S.sel][0]) : null; terminalHere(one && one.isDir ? one.loc : null, one?.loc); return; }
     if (e.key === 'F5') { e.preventDefault(); go(S.view, { push: false }); return; }
     if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); goBack(); return; }
@@ -1711,6 +1755,7 @@ async function main() {
   $('#btn-scan').onclick = scan;
   $('#btn-settings').onclick = openSettings;
   $('#btn-sidebar').onclick = toggleSidebar;
+  $('#btn-tree').onclick = toggleTree;
   $('#crumbs').onclick = startEdit;
   const ai = $('#address-input');
   ai.addEventListener('keydown', e => { if (e.key === 'Enter') { endEdit(); openTyped(ai.value); } });

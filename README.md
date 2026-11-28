@@ -1,19 +1,19 @@
-# Navsuite
+# Narada
 
-[![CI](https://github.com/ShankarOnline/navsuite/actions/workflows/ci.yml/badge.svg)](https://github.com/ShankarOnline/navsuite/actions/workflows/ci.yml)
+[![CI](https://github.com/ShankarOnline/narada/actions/workflows/ci.yml/badge.svg)](https://github.com/ShankarOnline/narada/actions/workflows/ci.yml)
 
 **One explorer for files, networks, phones and drives.** A single window that shows every system on
 your home network and tailnet as one record, browses files across local disks, SMB, SFTP and FTP,
 passes files to any phone through a browser, reads other operating systems' drives safely, and plays
 media — the same on Windows, macOS and Linux (Raspberry Pi included).
 
-Navsuite is a family hobby project by Toggle Minds. It is early, and built in the open.
+Narada is a family hobby project by Toggle Minds. It is early, and built in the open.
 
 ## Why
 
 The built-in "network neighbourhood" views have broken down (SMB1 is gone, each OS uses a different
 discovery protocol, mesh VPNs like Tailscale don't carry Bonjour), and good tools exist only for
-slices of the problem, each tied to one OS. Navsuite joins the slices: one record per system across
+slices of the problem, each tied to one OS. Narada joins the slices: one record per system across
 every channel it can be reached through, and one file view for every kind of location.
 
 ## What works today (early MVP)
@@ -35,11 +35,11 @@ The full feature list and design notes live in the project's planning docs.
 
 ## Build
 
-Requires a recent Rust toolchain. Navsuite is [Tauri 2](https://tauri.app) with a plain HTML/JS
+Requires a recent Rust toolchain. Narada is [Tauri 2](https://tauri.app) with a plain HTML/JS
 frontend — no Node build step, no bundler.
 
 ```sh
-cargo run -p navsuite          # run the app
+cargo run -p narada          # run the app
 cargo test                     # run the crate tests
 cargo run -p netscan --example scan   # a standalone network scan
 ```
@@ -58,7 +58,7 @@ cargo run -p netscan --example scan   # a standalone network scan
 
 ## Safety
 
-Navsuite never writes to another operating system's partitions or to a raw device; they are opened
+Narada never writes to another operating system's partitions or to a raw device; they are opened
 read-only. It does not disable, evade or work around antivirus software. Sign-ins are kept in the
 operating system's keychain and never leave the machine.
 

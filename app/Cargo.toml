@@ -1,11 +1,11 @@
 [package]
-name = "navsuite"
+name = "narada"
 version.workspace = true
 edition.workspace = true
 description = "Unified file and network explorer"
 
 [lib]
-name = "navsuite_lib"
+name = "narada_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

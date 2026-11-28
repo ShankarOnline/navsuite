@@ -174,7 +174,7 @@ fn write_line<T: Serialize>(w: &mut impl Write, v: &T) -> Result<(), DiskError> 
     w.flush().map_err(DiskError::from)
 }
 
-/// Entry point for `navsuite --disk-helper <pipe-name> <token>` (pass the full
+/// Entry point for `narada --disk-helper <pipe-name> <token>` (pass the full
 /// `std::env::args()` list). Never returns. Exit codes: 0 ok, 2 bad args/token,
 /// 3 pipe error, 4 unsupported OS.
 pub fn helper_main(args: &[String]) -> ! {
@@ -234,7 +234,7 @@ impl HelperClient {
         #[cfg(windows)]
         {
             let token = random_hex(16)?;
-            let name = format!("navsuite-disk-{}", random_hex(8)?);
+            let name = format!("narada-disk-{}", random_hex(8)?);
             let (pipe, process) = crate::windows::spawn_helper(exe_path, &name, &token)?;
             let reader = pipe.try_clone().map_err(DiskError::from)?;
             let client = HelperClient {

@@ -60,7 +60,7 @@ impl Default for DropConfig {
     fn default() -> Self {
         Self {
             port: 8765,
-            data_dir: PathBuf::from("navsuite-drop"),
+            data_dir: PathBuf::from("narada-drop"),
             device_name: "This computer".into(),
             expiry_hours: 24,
             tls: None,

@@ -380,7 +380,7 @@ impl Vfs {
             let n = tokio::task::spawn_blocking(move || smb::mounted_shares(&h)).await?;
             if n.is_empty() {
                 return Err(VfsError::unsupported(format!(
-                    "No shares from {host} are mounted. On this OS navsuite uses SMB shares mounted by the system \
+                    "No shares from {host} are mounted. On this OS narada uses SMB shares mounted by the system \
                      (Finder Cmd+K, file manager, or mount.cifs)."
                 )));
             }

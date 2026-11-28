@@ -302,7 +302,7 @@ mod tests {
     /// Start the server over a temp file and fetch a byte range with a raw HTTP/1.1 request.
     #[tokio::test]
     async fn streams_a_range() {
-        let dir = std::env::temp_dir().join(format!("navsuite-stream-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("narada-stream-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let file = dir.join("clip.bin");
         let data: Vec<u8> = (0..5000u32).map(|i| i as u8).collect();

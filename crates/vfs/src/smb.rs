@@ -191,7 +191,7 @@ pub(crate) fn mounted_shares(host: &str) -> Vec<String> {
 #[cfg(unix)]
 pub(crate) fn not_mounted(loc: &Loc) -> crate::VfsError {
     crate::VfsError::unsupported(format!(
-        "{} is not mounted. On this OS navsuite reads SMB shares through the system mount: \
+        "{} is not mounted. On this OS narada reads SMB shares through the system mount: \
          connect it in Finder (Cmd+K) / your file manager, or mount it with mount.cifs, then retry.",
         loc.to_uri()
     ))

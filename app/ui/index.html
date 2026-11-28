@@ -9,7 +9,8 @@
 </head>
 <body>
   <header class="toolbar">
-    <button id="btn-sidebar" class="toggle-btn" title="Hide or show the sidebar (Ctrl+B)" aria-label="Toggle sidebar">&#9776;</button>
+    <button id="btn-sidebar" class="toggle-btn" title="Hide or show the sections sidebar (Ctrl+B)" aria-label="Toggle sidebar">&#9776;</button>
+    <button id="btn-tree" class="toggle-btn" title="Hide or show the tree (Ctrl+Shift+B)" aria-label="Toggle tree">&#9707;</button>
     <div class="nav-buttons">
       <button id="btn-back" title="Back (Alt+Left)" aria-label="Back">&#8592;</button>
       <button id="btn-fwd" title="Forward (Alt+Right)" aria-label="Forward">&#8594;</button>
@@ -35,6 +36,7 @@
       <div class="statusbar" id="statusbar"></div>
     </section>
     <aside class="details" id="details" aria-label="Details"></aside>
+    <div class="v-splitter" id="sidebar-splitter" title="Drag to resize the sidebar"></div>
   </main>
 
   <div class="splitter" id="dock-splitter" title="Drag to resize"></div>
