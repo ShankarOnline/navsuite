@@ -1551,9 +1551,17 @@ function onDropEvent(ev) {
 }
 
 /* ---------- dock ---------- */
+// Collapse the bottom dock to just its tab bar, or spring it back open. Persists the choice.
+function setDockCollapsed(collapsed) {
+  $('#dock').classList.toggle('collapsed', collapsed);
+  $('#dock-toggle').innerHTML = collapsed ? '&#9650;' : '&#9662;'; // ▲ to open, ▼ to collapse
+  $('#dock-toggle').title = (collapsed ? 'Show' : 'Hide') + ' the dock (Ctrl+`)';
+  fitTerms();
+  if (S.settings && S.settings.dockCollapsed !== collapsed) { S.settings.dockCollapsed = collapsed; saveSettings(); }
+}
 // Reveal a dock pane. Does NOT auto-open a terminal, so newTerminal() can call it safely.
 function showDock(tab) {
-  $('#dock').classList.remove('collapsed');
+  setDockCollapsed(false);
   for (const b of document.querySelectorAll('.dock-tabs button[data-tab]')) b.classList.toggle('active', b.dataset.tab === tab);
   for (const p of document.querySelectorAll('.dock-pane')) p.classList.toggle('active', p.dataset.pane === tab);
   if (tab === 'phones') { $('#drop-badge').hidden = true; $('#drop-badge').textContent = ''; refreshPhones(); }
@@ -1564,8 +1572,12 @@ function openDock(tab) {
   if (tab === 'terminal') { if (!S.terms.size) newTerminal(); else activateTerm(S.activeTerm); }
 }
 function setupDock() {
-  for (const b of document.querySelectorAll('.dock-tabs button[data-tab]')) b.addEventListener('click', () => openDock(b.dataset.tab));
-  $('#dock-toggle').onclick = () => { $('#dock').classList.toggle('collapsed'); fitTerms(); };
+  for (const b of document.querySelectorAll('.dock-tabs button[data-tab]')) b.addEventListener('click', () => {
+    // Click an open pane's own tab to collapse it; click any tab to spring the dock open.
+    if (!$('#dock').classList.contains('collapsed') && b.classList.contains('active')) setDockCollapsed(true);
+    else openDock(b.dataset.tab);
+  });
+  $('#dock-toggle').onclick = () => setDockCollapsed(!$('#dock').classList.contains('collapsed'));
   $('#term-new').onclick = () => newTerminal({ cwd: S.view.type === 'folder' && !/^sftp:/i.test(S.view.loc) ? S.view.loc : null });
   $('#probe-kind').onchange = () => ($('#probe-port').hidden = $('#probe-kind').value !== 'port');
   $('#probe-run').onclick = () => runProbe($('#probe-target').value.trim(), $('#probe-kind').value, $('#probe-port').value);
@@ -1594,6 +1606,13 @@ function applyTheme() {
   const t = S.settings.theme;
   if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
   $('#workspace').classList.toggle('no-tree', !S.settings.showTree);
+  $('#workspace').classList.toggle('no-sidebar', S.settings.showSidebar === false);
+  setDockCollapsed(!!S.settings.dockCollapsed);
+}
+function toggleSidebar() {
+  S.settings.showSidebar = S.settings.showSidebar === false; // hidden -> show, visible -> hide
+  applyTheme();
+  saveSettings();
 }
 async function openSettings() {
   const s = S.settings;
@@ -1639,7 +1658,8 @@ function setupKeys() {
     const ctrl = e.ctrlKey || e.metaKey;
     if (e.key === 'Escape') { hideMenu(); if (inField && e.target.id === 'address-input') endEdit(); return; }
     if (ctrl && e.key.toLowerCase() === 'l') { e.preventDefault(); startEdit(); return; }
-    if (ctrl && e.key === '`') { e.preventDefault(); $('#dock').classList.toggle('collapsed'); fitTerms(); return; }
+    if (ctrl && e.key === '`') { e.preventDefault(); setDockCollapsed(!$('#dock').classList.contains('collapsed')); return; }
+    if (ctrl && !e.shiftKey && e.key.toLowerCase() === 'b') { e.preventDefault(); toggleSidebar(); return; }
     if (ctrl && e.shiftKey && e.key.toLowerCase() === 't') { e.preventDefault(); const one = S.sel.size === 1 ? entryByLoc([...S.sel][0]) : null; terminalHere(one && one.isDir ? one.loc : null, one?.loc); return; }
     if (e.key === 'F5') { e.preventDefault(); go(S.view, { push: false }); return; }
     if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); goBack(); return; }
@@ -1690,6 +1710,7 @@ async function main() {
   $('#btn-refresh').onclick = () => go(S.view, { push: false });
   $('#btn-scan').onclick = scan;
   $('#btn-settings').onclick = openSettings;
+  $('#btn-sidebar').onclick = toggleSidebar;
   $('#crumbs').onclick = startEdit;
   const ai = $('#address-input');
   ai.addEventListener('keydown', e => { if (e.key === 'Enter') { endEdit(); openTyped(ai.value); } });

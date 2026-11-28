@@ -53,7 +53,8 @@ input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px s
 /* Toolbar */
 .toolbar { display: flex; gap: 8px; align-items: center; padding: 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .nav-buttons { display: flex; gap: 4px; }
-.nav-buttons button { width: 30px; padding: 4px 0; }
+.nav-buttons button, .toggle-btn { width: 30px; padding: 4px 0; }
+.toggle-btn { font-size: 15px; line-height: 1; }
 .address { flex: 1; position: relative; min-width: 0; }
 .address input { width: 100%; font-family: var(--mono); display: none; }
 .address.editing input { display: block; }
@@ -71,6 +72,9 @@ input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px s
 .workspace { flex: 1; display: grid; grid-template-columns: 210px 230px 1fr 290px; min-height: 0; }
 .workspace.no-tree { grid-template-columns: 210px 0 1fr 290px; }
 .workspace.no-tree .tree { display: none; }
+.workspace.no-sidebar { grid-template-columns: 0 230px 1fr 290px; }
+.workspace.no-sidebar .sidebar { display: none; }
+.workspace.no-sidebar.no-tree { grid-template-columns: 0 0 1fr 290px; }
 .sidebar, .tree, .details { overflow: auto; background: var(--panel); border-right: 1px solid var(--line); }
 .details { border-right: 0; border-left: 1px solid var(--line); padding: 12px; }
 .content { display: flex; flex-direction: column; min-width: 0; min-height: 0; }

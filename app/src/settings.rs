@@ -31,6 +31,10 @@ pub struct Settings {
     pub theme: String,
     pub show_hidden: bool,
     pub show_tree: bool,
+    /// Show the left sidebar (sections list); toggled from the toolbar (Ctrl+B).
+    pub show_sidebar: bool,
+    /// Keep the bottom dock (terminal/transfers/probes...) collapsed until needed.
+    pub dock_collapsed: bool,
     /// Check every copy against the source with SHA-256 (E9).
     pub verify_copies: bool,
     pub write_manifest: bool,
@@ -61,6 +65,8 @@ impl Default for Settings {
             theme: "system".into(),
             show_hidden: true,
             show_tree: true,
+            show_sidebar: true,
+            dock_collapsed: false,
             verify_copies: true,
             write_manifest: false,
             drop_enabled: true,
